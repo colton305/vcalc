@@ -33,9 +33,15 @@
 #include "mlir/Dialect/SCF/IR/SCF.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
 
+// AST
+#include "ASTBuilder.h"
+
+
 class BackEnd {
  public:
     BackEnd();
+
+    void generateStat(StatAST* node);
 
     int emitModule();
     int lowerDialects();

@@ -32,7 +32,7 @@ expr
     | '[' ID IN expr '|' expr ']'  #filter
     | '(' expr ')'  #paren
     | expr '[' expr ']'  #index
-    | expr '..' expr  #rangeec
+    | expr '..' expr  #range
     | expr op=('*' | '/') expr  #mulDiv
     | expr op=('+' | '-') expr  #addSub
     | expr op=('<' | '>') expr  #strictComp

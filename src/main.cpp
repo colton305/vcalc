@@ -6,6 +6,7 @@
 #include "tree/ParseTree.h"
 #include "tree/ParseTreeWalker.h"
 
+#include "ASTBuilder.h"
 #include "BackEnd.h"
 
 #include <iostream>
@@ -30,9 +31,9 @@ int main(int argc, char **argv) {
 
   // HOW TO USE A VISITOR
   // Make the visitor
-  // MyVisitor visitor;
+  ASTBuilder visitor;
   // Visit the tree
-  // visitor.visit(tree);
+  std::shared_ptr<StatAST> root = std::any_cast<std::shared_ptr<StatAST>>(visitor.visit(tree));
 
   std::ofstream os(argv[2]);
   BackEnd backend;
