@@ -7,20 +7,23 @@ std::any ASTBuilder::visitFile(VCalcParser::FileContext *ctx) {
         current_block->stats.push_back(std::any_cast<std::shared_ptr<StatAST>>(visit(stat)));
     }
     
-    return std::static_pointer_cast<StatAST>(current_block);
+    return std::static_pointer_cast<BlockStatAST>(current_block);
 }
 
 std::any ASTBuilder::visitDecl(VCalcParser::DeclContext *ctx) {
-    current_block->define(ctx->ID()->getText());
+    auto var = current_block->define(ctx->ID()->getText());
     auto expr = std::any_cast<std::shared_ptr<ExprAST>>(visit(ctx->expr()));
+    auto decl = std::make_shared<VarStatAST>("decl", expr, var);
     
-    return std::make_shared<StatAST>("decl", expr);
+    return std::static_pointer_cast<StatAST>(decl);
 }
 
 std::any ASTBuilder::visitAssign(VCalcParser::AssignContext *ctx) {
+    auto var = current_block->resolve(ctx->ID()->getText());
     auto expr = std::any_cast<std::shared_ptr<ExprAST>>(visit(ctx->expr()));
+    auto assign = std::make_shared<VarStatAST>("assign", expr, var);
     
-    return std::make_shared<StatAST>("assign", expr);
+    return std::static_pointer_cast<StatAST>(assign);
 }
 
 std::any ASTBuilder::visitCond(VCalcParser::CondContext *ctx) {
@@ -31,8 +34,9 @@ std::any ASTBuilder::visitCond(VCalcParser::CondContext *ctx) {
     for (auto stat : ctx->stat()) {
         current_block->stats.push_back(std::any_cast<std::shared_ptr<StatAST>>(visit(stat)));
     }
+    current_block = current_block->parent_block;
     
-    return std::static_pointer_cast<StatAST>(current_block);
+    return std::static_pointer_cast<StatAST>(cond_block);
 }
 
 std::any ASTBuilder::visitLoop(VCalcParser::LoopContext *ctx) {
@@ -43,14 +47,20 @@ std::any ASTBuilder::visitLoop(VCalcParser::LoopContext *ctx) {
     for (auto stat : ctx->stat()) {
         current_block->stats.push_back(std::any_cast<std::shared_ptr<StatAST>>(visit(stat)));
     }
+    current_block = current_block->parent_block;
     
-    return std::static_pointer_cast<StatAST>(current_block);
+    return std::static_pointer_cast<StatAST>(loop_block);
 }
 
 std::any ASTBuilder::visitPrint(VCalcParser::PrintContext *ctx) {
     auto expr = std::any_cast<std::shared_ptr<ExprAST>>(visit(ctx->expr()));
     
     return std::make_shared<StatAST>("print", expr);
+}
+
+std::any ASTBuilder::visitParen(VCalcParser::ParenContext *ctx) {
+    auto ast_node = std::any_cast<std::shared_ptr<ExprAST>>(visit(ctx->expr()));
+    return std::static_pointer_cast<ExprAST>(ast_node);
 }
 
 std::any ASTBuilder::visitMulDiv(VCalcParser::MulDivContext *ctx) {

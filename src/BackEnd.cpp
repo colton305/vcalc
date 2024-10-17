@@ -18,31 +18,29 @@ BackEnd::BackEnd() : loc(mlir::UnknownLoc::get(&context)) {
     // Some intial setup to get off the ground 
     setupPrintf();
     createGlobalString("%c\0", "charFormat");
-    createGlobalString("%d\0", "intFormat");
+    createGlobalString("%d\n\0", "intFormat");
 }
 
-int BackEnd::emitModule() {
+int BackEnd::emitModule(std::shared_ptr<BlockStatAST> root) {
 
     // Create a main function 
-    mlir::Type intType = mlir::IntegerType::get(&context, 32);
+    intType = mlir::IntegerType::get(&context, 32);
+    ptrType = mlir::LLVM::LLVMPointerType::get(&context);
     auto mainType = mlir::LLVM::LLVMFunctionType::get(intType, {}, false);
-    mlir::LLVM::LLVMFuncOp mainFunc = builder->create<mlir::LLVM::LLVMFuncOp>(loc, "main", mainType);
+    mainFunc = builder->create<mlir::LLVM::LLVMFuncOp>(loc, "main", mainType);
     mlir::Block *entry = mainFunc.addEntryBlock();
     builder->setInsertionPointToStart(entry);
+    zero = builder->create<mlir::LLVM::ConstantOp>(loc, intType, 0);
 
     // Get the integer format string we already created.   
-    mlir::LLVM::GlobalOp formatString;
     if (!(formatString = module.lookupSymbol<mlir::LLVM::GlobalOp>("intFormat"))) {
         llvm::errs() << "missing format string!\n";
         return 1;
     }
 
-    // Get the format string and print 415
-    mlir::Value formatStringPtr = builder->create<mlir::LLVM::AddressOfOp>(loc, formatString); 
-    mlir::Value intToPrint = builder->create<mlir::LLVM::ConstantOp>(loc, intType, 415); 
-    mlir::ValueRange args = {formatStringPtr, intToPrint}; 
-    mlir::LLVM::LLVMFuncOp printfFunc = module.lookupSymbol<mlir::LLVM::LLVMFuncOp>("printf"); 
-    builder->create<mlir::LLVM::CallOp>(loc, printfFunc, args);
+    for (auto stat : root->stats) {
+        generateStat(stat);
+    }
 
     // Return 0
     mlir::Value zero = builder->create<mlir::LLVM::ConstantOp>(loc, intType, builder->getIntegerAttr(intType, 0));

@@ -33,11 +33,11 @@ int main(int argc, char **argv) {
   // Make the visitor
   ASTBuilder visitor;
   // Visit the tree
-  std::shared_ptr<StatAST> root = std::any_cast<std::shared_ptr<StatAST>>(visitor.visit(tree));
+  std::shared_ptr<BlockStatAST> root = std::any_cast<std::shared_ptr<BlockStatAST>>(visitor.visit(tree));
 
   std::ofstream os(argv[2]);
   BackEnd backend;
-  backend.emitModule();
+  backend.emitModule(root);
   backend.lowerDialects();
   backend.dumpLLVM(os);
 

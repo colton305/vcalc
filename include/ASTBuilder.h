@@ -16,6 +16,7 @@ public:
     std::any visitCond(VCalcParser::CondContext *) override;
     std::any visitLoop(VCalcParser::LoopContext *) override;
     std::any visitPrint(VCalcParser::PrintContext *) override;
+    std::any visitParen(VCalcParser::ParenContext *) override;
     std::any visitMulDiv(VCalcParser::MulDivContext *) override;
     std::any visitAddSub(VCalcParser::AddSubContext *) override;
     std::any visitStrictComp(VCalcParser::StrictCompContext *) override;

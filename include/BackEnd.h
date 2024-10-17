@@ -41,9 +41,18 @@ class BackEnd {
  public:
     BackEnd();
 
-    void generateStat(StatAST* node);
+    void generateStat(std::shared_ptr<StatAST> node);
+    mlir::Value generateExpr(std::shared_ptr<ExprAST> node);
+    void generateDeclStat(std::shared_ptr<VarStatAST> node);
+    void generateAssignStat(std::shared_ptr<VarStatAST> node);
+    void generateCondStat(std::shared_ptr<BlockStatAST> node);
+    void generateLoopStat(std::shared_ptr<BlockStatAST> node);
+    void generatePrintStat(std::shared_ptr<StatAST> node);
+    mlir::Value generateBinExpr(std::shared_ptr<BinExprAST> node);
+    mlir::Value generateNumExpr(std::shared_ptr<NumAST> node);
+    mlir::Value generateVarExpr(std::shared_ptr<VarAST> node);
 
-    int emitModule();
+    int emitModule(std::shared_ptr<BlockStatAST> root);
     int lowerDialects();
     void dumpLLVM(std::ostream &os);
  
@@ -61,4 +70,13 @@ class BackEnd {
     // LLVM 
     llvm::LLVMContext llvm_context;
     std::unique_ptr<llvm::Module> llvm_module;
+    mlir::LLVM::LLVMFuncOp mainFunc;
+
+    // Types
+    mlir::Type intType;
+    mlir::Type ptrType;
+
+    // Constants
+    mlir::LLVM::GlobalOp formatString;
+    mlir::Value zero;
 };
