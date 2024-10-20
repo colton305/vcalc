@@ -28,11 +28,11 @@ print
     : PRINT '(' expr ')' ';' ;
 
 expr
-    : '[' ID IN expr '|' expr ']'  #gen
-    | '[' ID IN expr '|' expr ']'  #filter
+    : '[' ID IN expr op='|' expr ']'  #gen
+    | '[' ID IN expr op='&' expr ']'  #filter
     | '(' expr ')'  #paren
-    | expr '[' expr ']'  #index
-    | expr '..' expr  #range
+    | expr op='[' expr ']'  #index
+    | expr op='..' expr  #range
     | expr op=('*' | '/') expr  #mulDiv
     | expr op=('+' | '-') expr  #addSub
     | expr op=('<' | '>') expr  #strictComp

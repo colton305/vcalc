@@ -1,5 +1,5 @@
 {
-  "testDir": "testfiles/1748332",
+  "testDir": "testfiles",
   "testedExecutablePaths": {
     "scalc2-drvectorsrevenge": "../bin/vcalc"
   },

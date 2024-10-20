@@ -42,15 +42,25 @@ class BackEnd {
     BackEnd();
 
     void generateStat(std::shared_ptr<StatAST> node);
-    mlir::Value generateExpr(std::shared_ptr<ExprAST> node);
+    ExprResult generateExpr(std::shared_ptr<ExprAST> node);
     void generateDeclStat(std::shared_ptr<VarStatAST> node);
     void generateAssignStat(std::shared_ptr<VarStatAST> node);
     void generateCondStat(std::shared_ptr<BlockStatAST> node);
     void generateLoopStat(std::shared_ptr<BlockStatAST> node);
     void generatePrintStat(std::shared_ptr<StatAST> node);
-    mlir::Value generateBinExpr(std::shared_ptr<BinExprAST> node);
-    mlir::Value generateNumExpr(std::shared_ptr<NumAST> node);
-    mlir::Value generateVarExpr(std::shared_ptr<VarAST> node);
+    void generatePrint(std::string format);
+    void generateIntPrint(std::string format, mlir::Value value);
+    ExprResult generateBinExpr(std::shared_ptr<BinExprAST> node);
+    ExprResult generateIntBinExpr(std::shared_ptr<BinExprAST> node);
+    ExprResult generateVecBinExpr(std::shared_ptr<BinExprAST> node);
+    ExprResult generateVecIntBinExpr(std::shared_ptr<BinExprAST> node);
+    ExprResult generateGenExpr(std::shared_ptr<ScopedBinExprAST> node);
+    ExprResult generateFilterExpr(std::shared_ptr<ScopedBinExprAST> node);
+    ExprResult generateVecIndexExpr(std::shared_ptr<BinExprAST> node);
+    ExprResult generateIndexExpr(std::shared_ptr<BinExprAST> node);
+    ExprResult generateRangeExpr(mlir::Value lowerBound, mlir::Value upperBound);
+    ExprResult generateNumExpr(std::shared_ptr<NumAST> node);
+    ExprResult generateVarExpr(std::shared_ptr<VarAST> node);
 
     int emitModule(std::shared_ptr<BlockStatAST> root);
     int lowerDialects();
@@ -77,6 +87,6 @@ class BackEnd {
     mlir::Type ptrType;
 
     // Constants
-    mlir::LLVM::GlobalOp formatString;
     mlir::Value zero;
+    mlir::Value one;
 };

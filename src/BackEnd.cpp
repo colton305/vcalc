@@ -17,8 +17,11 @@ BackEnd::BackEnd() : loc(mlir::UnknownLoc::get(&context)) {
 
     // Some intial setup to get off the ground 
     setupPrintf();
-    createGlobalString("%c\0", "charFormat");
     createGlobalString("%d\n\0", "intFormat");
+    createGlobalString("[\0", "vectorStartFormat");
+    createGlobalString("%d\0", "vectorIntFormat");
+    createGlobalString(" \0", "vectorSpaceFormat");
+    createGlobalString("]\n\0", "vectorEndFormat");
 }
 
 int BackEnd::emitModule(std::shared_ptr<BlockStatAST> root) {
@@ -31,13 +34,8 @@ int BackEnd::emitModule(std::shared_ptr<BlockStatAST> root) {
     mlir::Block *entry = mainFunc.addEntryBlock();
     builder->setInsertionPointToStart(entry);
     zero = builder->create<mlir::LLVM::ConstantOp>(loc, intType, 0);
-
-    // Get the integer format string we already created.   
-    if (!(formatString = module.lookupSymbol<mlir::LLVM::GlobalOp>("intFormat"))) {
-        llvm::errs() << "missing format string!\n";
-        return 1;
-    }
-
+    one = builder->create<mlir::LLVM::ConstantOp>(loc, intType, 1);
+    
     for (auto stat : root->stats) {
         generateStat(stat);
     }
