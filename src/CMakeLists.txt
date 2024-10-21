@@ -3,9 +3,11 @@ set(
   vcalc_src_files
     "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/BackEnd.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/BackEndGen.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/AST.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/ASTBuilder.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/ExprGenerator.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/StatementGenerator.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/VectorOperations.cpp"
 )
 
 # Build our executable from the source files.
