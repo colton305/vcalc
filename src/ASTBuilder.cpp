@@ -22,8 +22,8 @@ std::any ASTBuilder::visitFile(VCalcParser::FileContext *ctx) {
 /// @param ctx The declaration context from the parser.
 /// @return A shared pointer to the resulting VarStatAST.
 std::any ASTBuilder::visitDecl(VCalcParser::DeclContext *ctx) {
-    auto var = current_scope->define(ctx->type->getText(), ctx->ID()->getText());
     auto expr = std::any_cast<std::shared_ptr<ExprAST>>(visit(ctx->expr()));
+    auto var = current_scope->define(ctx->type->getText(), ctx->ID()->getText());
     auto decl = std::make_shared<VarStatAST>("decl", expr, var);
     
     return std::static_pointer_cast<StatAST>(decl);
@@ -110,6 +110,7 @@ std::any ASTBuilder::visitParen(VCalcParser::ParenContext *ctx) {
 /// @return A shared pointer to the resulting ScopedBinExprAST.
 std::any ASTBuilder::visitGen(VCalcParser::GenContext *ctx) {
     auto ast_node = std::make_shared<ScopedBinExprAST>("vector", ctx->op->getText(), nullptr, nullptr);
+    ast_node->lhs = std::any_cast<std::shared_ptr<ExprAST>>(visit(ctx->expr(0)));
     ast_node->scope = std::make_shared<Scope>(current_scope);
     current_scope = ast_node->scope;
     current_scope->define("int", ctx->ID()->getText());
@@ -117,7 +118,6 @@ std::any ASTBuilder::visitGen(VCalcParser::GenContext *ctx) {
     std::cout << ast_node->iterator << "\n";
 
     std::cout << "Started gen\n";
-    ast_node->lhs = std::any_cast<std::shared_ptr<ExprAST>>(visit(ctx->expr(0)));
     ast_node->rhs = std::any_cast<std::shared_ptr<ExprAST>>(visit(ctx->expr(1)));
     current_scope = current_scope->parent_scope;
     std::cout << "Completed gen\n";
@@ -131,6 +131,7 @@ std::any ASTBuilder::visitGen(VCalcParser::GenContext *ctx) {
 /// @return A shared pointer to the resulting ScopedBinExprAST.
 std::any ASTBuilder::visitFilter(VCalcParser::FilterContext *ctx) {
     auto ast_node = std::make_shared<ScopedBinExprAST>("vector", ctx->op->getText(), nullptr, nullptr);
+    ast_node->lhs = std::any_cast<std::shared_ptr<ExprAST>>(visit(ctx->expr(0)));
     ast_node->scope = std::make_shared<Scope>(current_scope);
     current_scope = ast_node->scope;
     current_scope->define("int", ctx->ID()->getText());
@@ -138,7 +139,6 @@ std::any ASTBuilder::visitFilter(VCalcParser::FilterContext *ctx) {
     std::cout << ast_node->iterator << "\n";
 
     std::cout << "Started filter\n";
-    ast_node->lhs = std::any_cast<std::shared_ptr<ExprAST>>(visit(ctx->expr(0)));
     ast_node->rhs = std::any_cast<std::shared_ptr<ExprAST>>(visit(ctx->expr(1)));
     current_scope = current_scope->parent_scope;
     std::cout << "Completed filter\n";
