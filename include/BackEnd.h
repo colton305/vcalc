@@ -55,6 +55,7 @@ class BackEnd {
     ExprResult generateVecBinExpr(std::shared_ptr<BinExprAST> node);
     ExprResult generateVecOpExpr(std::shared_ptr<BinExprAST> node);
     ExprResult generateVecIntBinExpr(std::shared_ptr<BinExprAST> node);
+    ExprResult generateVecIntOpExpr(std::shared_ptr<BinExprAST> node);
     mlir::Value generateBinOp(std::string op, mlir::Value lhs, mlir::Value rhs);
     ExprResult generateGenExpr(std::shared_ptr<ScopedBinExprAST> node);
     ExprResult generateFilterExpr(std::shared_ptr<ScopedBinExprAST> node);

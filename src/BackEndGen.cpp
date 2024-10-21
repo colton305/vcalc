@@ -178,28 +178,8 @@ ExprResult BackEnd::generateIntBinExpr(std::shared_ptr<BinExprAST> node) {
 
     if (node->op == "..") {
         return generateRangeExpr(lhs.value, rhs.value);
-    } else if (node->op == "*") {
-        result.value =  builder->create<mlir::LLVM::MulOp>(loc, lhs.value, rhs.value);
-    } else if (node->op == "/") {
-        result.value =  builder->create<mlir::LLVM::SDivOp>(loc, lhs.value, rhs.value);
-    } else if (node->op == "+") {
-        result.value =  builder->create<mlir::LLVM::AddOp>(loc, lhs.value, rhs.value);
-    } else if (node->op == "-") {
-        result.value =  builder->create<mlir::LLVM::SubOp>(loc, lhs.value, rhs.value);
-    } else if (node->op == "==") {
-        result.value = builder->create<mlir::LLVM::ICmpOp>(loc, mlir::LLVM::ICmpPredicate::eq, lhs.value, rhs.value);
-        result.value =  builder->create<mlir::LLVM::ZExtOp>(loc, intType, result.value);
-    } else if (node->op == "!=") {
-        result.value = builder->create<mlir::LLVM::ICmpOp>(loc, mlir::LLVM::ICmpPredicate::ne, lhs.value, rhs.value);
-        result.value =  builder->create<mlir::LLVM::ZExtOp>(loc, intType, result.value);
-    } else if (node->op == "<") {
-        result.value = builder->create<mlir::LLVM::ICmpOp>(loc, mlir::LLVM::ICmpPredicate::slt, lhs.value, rhs.value);
-        result.value =  builder->create<mlir::LLVM::ZExtOp>(loc, intType, result.value);
-    } else if (node->op == ">") {
-        result.value = builder->create<mlir::LLVM::ICmpOp>(loc, mlir::LLVM::ICmpPredicate::sgt, lhs.value, rhs.value);
-        result.value =  builder->create<mlir::LLVM::ZExtOp>(loc, intType, result.value);
     } else {
-        std::cout << "Error: Operation not found\n";
+        result.value = generateBinOp(node->op, lhs.value, rhs.value);
     }
 
     return result;
@@ -287,8 +267,57 @@ ExprResult BackEnd::generateVecIntBinExpr(std::shared_ptr<BinExprAST> node) {
     } else if (node->op == "[") {
         return generateIndexExpr(node);
     } else {
-        std::cout << "Error: Operation not found\n";
+        return generateVecIntOpExpr(node);
     }
+}
+
+ExprResult BackEnd::generateVecIntOpExpr(std::shared_ptr<BinExprAST> node) {
+    ExprResult lhs = generateExpr(node->lhs);
+    ExprResult rhs = generateExpr(node->rhs);
+
+    ExprResult result;
+    if (node->lhs->type == "vector") {
+        result.size = lhs.size;
+    } else {
+        result.size = rhs.size;
+    }
+
+    mlir::Block* header = mainFunc.addBlock();
+    mlir::Block* body = mainFunc.addBlock();
+    mlir::Block* merge = mainFunc.addBlock();
+
+    result.value = builder->create<mlir::LLVM::AllocaOp>(loc, ptrType, intType, result.size);
+    mlir::Value index = builder->create<mlir::LLVM::AllocaOp>(loc, ptrType, intType, one);
+    builder->create<mlir::LLVM::StoreOp>(loc, zero, index);
+
+    builder->create<mlir::LLVM::BrOp>(loc, header);
+    builder->setInsertionPointToStart(header);
+
+    mlir::Value indexValue = builder->create<mlir::LLVM::LoadOp>(loc, intType, index);
+    mlir::Value comp = builder->create<mlir::LLVM::ICmpOp>(loc, mlir::LLVM::ICmpPredicate::slt, indexValue, result.size);
+    builder->create<mlir::LLVM::CondBrOp>(loc, comp, body, merge);
+    builder->setInsertionPointToStart(body);
+
+    mlir::Value lhsValue;
+    mlir::Value rhsValue;
+    if (node->lhs->type == "vector") {
+        mlir::Value lhsPtr = builder->create<mlir::LLVM::GEPOp>(loc, ptrType, intType, lhs.value, indexValue);
+        lhsValue = builder->create<mlir::LLVM::LoadOp>(loc, intType, lhsPtr);
+        rhsValue = rhs.value;
+    } else {
+        lhsValue = lhs.value;
+        mlir::Value rhsPtr = builder->create<mlir::LLVM::GEPOp>(loc, ptrType, intType, rhs.value, indexValue);
+        rhsValue = builder->create<mlir::LLVM::LoadOp>(loc, intType, rhsPtr);
+    }
+    mlir::Value value = generateBinOp(node->op, lhsValue, rhsValue);
+    mlir::Value ptr = builder->create<mlir::LLVM::GEPOp>(loc, ptrType, intType, result.value, indexValue);
+    builder->create<mlir::LLVM::StoreOp>(loc, value, ptr);
+    indexValue = builder->create<mlir::LLVM::AddOp>(loc, indexValue, one);
+    builder->create<mlir::LLVM::StoreOp>(loc, indexValue, index);
+    builder->create<mlir::LLVM::BrOp>(loc, header);
+    builder->setInsertionPointToStart(merge);
+
+    return result;
 }
 
 mlir::Value BackEnd::generateBinOp(std::string op, mlir::Value lhs, mlir::Value rhs) {
@@ -297,6 +326,8 @@ mlir::Value BackEnd::generateBinOp(std::string op, mlir::Value lhs, mlir::Value 
     if (op == "*") {
         returnValue =  builder->create<mlir::LLVM::MulOp>(loc, lhs, rhs);
     } else if (op == "/") {
+        mlir::Value comp = builder->create<mlir::LLVM::ICmpOp>(loc, mlir::LLVM::ICmpPredicate::ne, rhs, zero);
+        rhs = builder->create<mlir::LLVM::SelectOp>(loc, comp, rhs, one);
         returnValue =  builder->create<mlir::LLVM::SDivOp>(loc, lhs, rhs);
     } else if (op == "+") {
         returnValue =  builder->create<mlir::LLVM::AddOp>(loc, lhs, rhs);
