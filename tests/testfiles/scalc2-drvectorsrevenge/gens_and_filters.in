@@ -1,0 +1,16 @@
+int i = 0 - 1;
+int j = 25 * 6;
+print(i..j);
+print(j..i);
+
+vector k = [i in [i in 100..j | i * i] & i < 10001];
+print(k);
+
+vector l = [j in [i in i..(0-10) & i > j] | j];
+print(l);
+
+vector m = [i in (0-10)..i | i];
+print(m);
+
+
+//CHECK_FILE:gens_and_filters.out
