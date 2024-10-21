@@ -21,10 +21,16 @@ void BackEnd::generateDeclStat(std::shared_ptr<VarStatAST> node) {
     std::cout << "AHA\n";
     ExprResult value = generateExpr(node->expr);
 
-    mlir::Value var = builder->create<mlir::LLVM::AllocaOp>(loc, ptrType, intType, one);
-    builder->create<mlir::LLVM::StoreOp>(loc, value.value, var);
-
-    node->var->value.value = var;
+    if (node->expr->type == "int") {
+        mlir::Value var = builder->create<mlir::LLVM::AllocaOp>(loc, ptrType, intType, one);
+        builder->create<mlir::LLVM::StoreOp>(loc, value.value, var);
+        node->var->value.value = var;
+    } else {
+        node->var->value.value = value.value;
+        mlir::Value size = builder->create<mlir::LLVM::AllocaOp>(loc, ptrType, intType, one);
+        builder->create<mlir::LLVM::StoreOp>(loc, value.size, size);
+        node->var->value.size = size;
+    }
     std::cout << node->var << "HERE1\n";
 }
 
@@ -34,7 +40,12 @@ void BackEnd::generateAssignStat(std::shared_ptr<VarStatAST> node) {
     std::cout << "HERE10\n";
     std::cout << node->var << "\n";
 
-    builder->create<mlir::LLVM::StoreOp>(loc, value.value, node->var->value.value);
+    if (node->expr->type == "int") {
+        builder->create<mlir::LLVM::StoreOp>(loc, value.value, node->var->value.value);
+    } else {
+        node->var->value.value = value.value;
+        builder->create<mlir::LLVM::StoreOp>(loc, value.size, node->var->value.size);
+    }
     std::cout << "HERE3\n";
 }
 
@@ -572,6 +583,11 @@ ExprResult BackEnd::generateNumExpr(std::shared_ptr<NumAST> node) {
 ExprResult BackEnd::generateVarExpr(std::shared_ptr<VarAST> node) {
     std::cout << node->var << "\n";
     ExprResult result;
-    result.value = builder->create<mlir::LLVM::LoadOp>(loc, intType, node->var->value.value);
+    if (node->type == "int") {
+        result.value = builder->create<mlir::LLVM::LoadOp>(loc, intType, node->var->value.value);
+    } else {
+        result.value = node->var->value.value;
+        result.size = builder->create<mlir::LLVM::LoadOp>(loc, intType, node->var->value.size);
+    }
     return result;
 }
