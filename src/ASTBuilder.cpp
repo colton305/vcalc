@@ -115,12 +115,9 @@ std::any ASTBuilder::visitGen(VCalcParser::GenContext *ctx) {
     current_scope = ast_node->scope;
     current_scope->define("int", ctx->ID()->getText());
     ast_node->iterator = current_scope->resolve(ctx->ID()->getText());
-    std::cout << ast_node->iterator << "\n";
 
-    std::cout << "Started gen\n";
     ast_node->rhs = std::any_cast<std::shared_ptr<ExprAST>>(visit(ctx->expr(1)));
     current_scope = current_scope->parent_scope;
-    std::cout << "Completed gen\n";
     return std::static_pointer_cast<ExprAST>(ast_node);
 }
 
@@ -136,12 +133,9 @@ std::any ASTBuilder::visitFilter(VCalcParser::FilterContext *ctx) {
     current_scope = ast_node->scope;
     current_scope->define("int", ctx->ID()->getText());
     ast_node->iterator = current_scope->resolve(ctx->ID()->getText());
-    std::cout << ast_node->iterator << "\n";
 
-    std::cout << "Started filter\n";
     ast_node->rhs = std::any_cast<std::shared_ptr<ExprAST>>(visit(ctx->expr(1)));
     current_scope = current_scope->parent_scope;
-    std::cout << "Completed filter\n";
     return std::static_pointer_cast<ExprAST>(ast_node);
 }
 
@@ -253,6 +247,5 @@ std::any ASTBuilder::visitNumAtom(VCalcParser::NumAtomContext *ctx) {
 /// @return A shared pointer to the resulting VarAST.
 std::any ASTBuilder::visitIdAtom(VCalcParser::IdAtomContext *ctx) {
     auto ast_node = std::make_shared<VarAST>(current_scope->resolve(ctx->ID()->getText()));
-    std::cout << current_scope->resolve(ctx->ID()->getText()) << "\n";
     return std::static_pointer_cast<ExprAST>(ast_node);
 }

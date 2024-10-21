@@ -10,16 +10,15 @@
  */
 ExprResult BackEnd::generateExpr(std::shared_ptr<ExprAST> node) {
     if (auto bin = std::dynamic_pointer_cast<BinExprAST>(node)) {
-        std::cout << "HERE4\n";
         return generateBinExpr(bin);
     } else if (auto num = std::dynamic_pointer_cast<NumAST>(node)) {
-        std::cout << "HERE5\n";
         return generateNumExpr(num);
     } else if (auto var = std::dynamic_pointer_cast<VarAST>(node)) {
-        std::cout << "HERE\n";
         return generateVarExpr(var);
     } else {
         std::cout << "Error: Expr type not found\n";
+        ExprResult result;
+        return result;
     }
 }
 
@@ -31,7 +30,6 @@ ExprResult BackEnd::generateExpr(std::shared_ptr<ExprAST> node) {
  * @return The result of the binary expression generation.
  */
 ExprResult BackEnd::generateBinExpr(std::shared_ptr<BinExprAST> node) {
-    std::cout << "HERE6\n";
 
     if (node->lhs->type == "int" && node->rhs->type == "int") {
         return generateIntBinExpr(node);
@@ -40,7 +38,6 @@ ExprResult BackEnd::generateBinExpr(std::shared_ptr<BinExprAST> node) {
     } else {
         return generateVecIntBinExpr(node);
     }
-    std::cout << "TYPE FALLTHROUGH\n";
 }
 
 /**
@@ -326,7 +323,6 @@ ExprResult BackEnd::generateNumExpr(std::shared_ptr<NumAST> node) {
  * @return The result containing the variable's value.
  */
 ExprResult BackEnd::generateVarExpr(std::shared_ptr<VarAST> node) {
-    std::cout << node->var << "\n";
     ExprResult result;
 
     // If the variable is an integer, load its value

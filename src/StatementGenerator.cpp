@@ -34,7 +34,6 @@ void BackEnd::generateStat(std::shared_ptr<StatAST> node) {
  * @param node A shared pointer to the AST node representing the variable declaration.
  */
 void BackEnd::generateDeclStat(std::shared_ptr<VarStatAST> node) {
-    std::cout << "AHA\n";
     ExprResult value = generateExpr(node->expr);
 
     if (node->expr->type == "int") {
@@ -47,7 +46,6 @@ void BackEnd::generateDeclStat(std::shared_ptr<VarStatAST> node) {
         builder->create<mlir::LLVM::StoreOp>(loc, value.size, size);
         node->var->value.size = size;
     }
-    std::cout << node->var << "HERE1\n";
 }
 
 /**
@@ -58,10 +56,7 @@ void BackEnd::generateDeclStat(std::shared_ptr<VarStatAST> node) {
  * @param node A shared pointer to the AST node representing the variable assignment.
  */
 void BackEnd::generateAssignStat(std::shared_ptr<VarStatAST> node) {
-    std::cout << node->expr << "\n";
     ExprResult value = generateExpr(node->expr);
-    std::cout << "HERE10\n";
-    std::cout << node->var << "\n";
 
     if (node->expr->type == "int") {
         builder->create<mlir::LLVM::StoreOp>(loc, value.value, node->var->value.value);
@@ -69,7 +64,6 @@ void BackEnd::generateAssignStat(std::shared_ptr<VarStatAST> node) {
         node->var->value.value = value.value;
         builder->create<mlir::LLVM::StoreOp>(loc, value.size, node->var->value.size);
     }
-    std::cout << "HERE3\n";
 }
 
 /**
@@ -85,20 +79,17 @@ void BackEnd::generateCondStat(std::shared_ptr<BlockStatAST> node) {
     mlir::Block* merge = mainFunc.addBlock();
 
     ExprResult cond = generateExpr(node->expr);
-    std::cout << "HERE7\n";
 
     cond.value = builder->create<mlir::LLVM::ICmpOp>(loc, mlir::LLVM::ICmpPredicate::eq, cond.value, zero);
     builder->create<mlir::LLVM::CondBrOp>(loc, cond.value, merge, body);
 
     builder->setInsertionPointToStart(body);
     for (auto stat : node->stats) {
-        std::cout << "HERE8\n";
         generateStat(stat);
     }
     builder->create<mlir::LLVM::BrOp>(loc, merge);
 
     builder->setInsertionPointToStart(merge);
-    std::cout << "HERE2\n";
 }
 
 /**
@@ -123,13 +114,11 @@ void BackEnd::generateLoopStat(std::shared_ptr<BlockStatAST> node) {
 
     builder->setInsertionPointToStart(body);
     for (auto stat : node->stats) {
-        std::cout << "HERE11\n";
         generateStat(stat);
     }
     builder->create<mlir::LLVM::BrOp>(loc, header);
 
     builder->setInsertionPointToStart(merge);
-    std::cout << "HERE12\n";
 }
 
 /**
@@ -141,9 +130,7 @@ void BackEnd::generateLoopStat(std::shared_ptr<BlockStatAST> node) {
  * @param node A shared pointer to the AST node representing the print statement.
  */
 void BackEnd::generatePrintStat(std::shared_ptr<StatAST> node) {
-    std::cout << "PRINTING\n";
     ExprResult value = generateExpr(node->expr);
-    std::cout << "MADE\n";
     if (node->expr->type == "int") {
         generateIntPrint("intFormat", value.value);
     } else if (node->expr->type == "vector") {
