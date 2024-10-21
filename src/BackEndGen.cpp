@@ -209,8 +209,74 @@ ExprResult BackEnd::generateVecBinExpr(std::shared_ptr<BinExprAST> node) {
     if (node->op == "[") {
         return generateVecIndexExpr(node);
     } else {
-        std::cout << "Error: Operation not found\n";
+        return generateVecOpExpr(node);
     }
+}
+
+ExprResult BackEnd::generateVecOpExpr(std::shared_ptr<BinExprAST> node) {
+    ExprResult lhs = generateExpr(node->lhs);
+    ExprResult rhs = generateExpr(node->rhs);
+    
+    ExprResult result;
+    mlir::Value comp = builder->create<mlir::LLVM::ICmpOp>(loc, mlir::LLVM::ICmpPredicate::sgt, lhs.size, rhs.size);
+    result.size = builder->create<mlir::LLVM::SelectOp>(loc, comp, lhs.size, rhs.size);
+    result.value = builder->create<mlir::LLVM::AllocaOp>(loc, ptrType, intType, result.size);
+
+    mlir::Block* header = mainFunc.addBlock();
+    mlir::Block* lhsBody = mainFunc.addBlock();
+    mlir::Block* lhsInBounds = mainFunc.addBlock();
+    mlir::Block* rhsBody = mainFunc.addBlock();
+    mlir::Block* rhsInBounds = mainFunc.addBlock();
+    mlir::Block* body = mainFunc.addBlock();
+    mlir::Block* merge = mainFunc.addBlock();
+
+    mlir::Value lhsPtr = builder->create<mlir::LLVM::AllocaOp>(loc, ptrType, intType, one);
+    mlir::Value rhsPtr = builder->create<mlir::LLVM::AllocaOp>(loc, ptrType, intType, one);
+
+    mlir::Value index = builder->create<mlir::LLVM::AllocaOp>(loc, ptrType, intType, one);
+    builder->create<mlir::LLVM::StoreOp>(loc, zero, index);
+
+    builder->create<mlir::LLVM::BrOp>(loc, header);
+    builder->setInsertionPointToStart(header);
+
+    mlir::Value indexValue = builder->create<mlir::LLVM::LoadOp>(loc, intType, index);
+    comp = builder->create<mlir::LLVM::ICmpOp>(loc, mlir::LLVM::ICmpPredicate::slt, indexValue, result.size);
+    builder->create<mlir::LLVM::CondBrOp>(loc, comp, lhsBody, merge);
+    builder->setInsertionPointToStart(lhsBody);
+
+    builder->create<mlir::LLVM::StoreOp>(loc, zero, lhsPtr);
+    comp = builder->create<mlir::LLVM::ICmpOp>(loc, mlir::LLVM::ICmpPredicate::slt, indexValue, lhs.size);
+    builder->create<mlir::LLVM::CondBrOp>(loc, comp, lhsInBounds, rhsBody);
+    builder->setInsertionPointToStart(lhsInBounds);
+
+    mlir::Value ptr = builder->create<mlir::LLVM::GEPOp>(loc, ptrType, intType, lhs.value, indexValue);
+    mlir::Value value = builder->create<mlir::LLVM::LoadOp>(loc, intType, ptr);
+    builder->create<mlir::LLVM::StoreOp>(loc, value, lhsPtr);
+    builder->create<mlir::LLVM::BrOp>(loc, rhsBody);
+    builder->setInsertionPointToStart(rhsBody);
+
+    builder->create<mlir::LLVM::StoreOp>(loc, zero, rhsPtr);
+    comp = builder->create<mlir::LLVM::ICmpOp>(loc, mlir::LLVM::ICmpPredicate::slt, indexValue, rhs.size);
+    builder->create<mlir::LLVM::CondBrOp>(loc, comp, rhsInBounds, body);
+    builder->setInsertionPointToStart(rhsInBounds);
+
+    ptr = builder->create<mlir::LLVM::GEPOp>(loc, ptrType, intType, rhs.value, indexValue);
+    value = builder->create<mlir::LLVM::LoadOp>(loc, intType, ptr);
+    builder->create<mlir::LLVM::StoreOp>(loc, value, rhsPtr);
+    builder->create<mlir::LLVM::BrOp>(loc, body);
+    builder->setInsertionPointToStart(body);
+
+    mlir::Value lhsValue = builder->create<mlir::LLVM::LoadOp>(loc, intType, lhsPtr);
+    mlir::Value rhsValue = builder->create<mlir::LLVM::LoadOp>(loc, intType, rhsPtr);
+    value = generateBinOp(node->op, lhsValue, rhsValue);
+    ptr = builder->create<mlir::LLVM::GEPOp>(loc, ptrType, intType, result.value, indexValue);
+    builder->create<mlir::LLVM::StoreOp>(loc, value, ptr);
+    indexValue = builder->create<mlir::LLVM::AddOp>(loc, indexValue, one);
+    builder->create<mlir::LLVM::StoreOp>(loc, indexValue, index);
+    builder->create<mlir::LLVM::BrOp>(loc, header);
+    builder->setInsertionPointToStart(merge);
+
+    return result;
 }
 
 ExprResult BackEnd::generateVecIntBinExpr(std::shared_ptr<BinExprAST> node) {
@@ -223,6 +289,36 @@ ExprResult BackEnd::generateVecIntBinExpr(std::shared_ptr<BinExprAST> node) {
     } else {
         std::cout << "Error: Operation not found\n";
     }
+}
+
+mlir::Value BackEnd::generateBinOp(std::string op, mlir::Value lhs, mlir::Value rhs) {
+    mlir::Value returnValue;
+
+    if (op == "*") {
+        returnValue =  builder->create<mlir::LLVM::MulOp>(loc, lhs, rhs);
+    } else if (op == "/") {
+        returnValue =  builder->create<mlir::LLVM::SDivOp>(loc, lhs, rhs);
+    } else if (op == "+") {
+        returnValue =  builder->create<mlir::LLVM::AddOp>(loc, lhs, rhs);
+    } else if (op == "-") {
+        returnValue =  builder->create<mlir::LLVM::SubOp>(loc, lhs, rhs);
+    } else if (op == "==") {
+        returnValue = builder->create<mlir::LLVM::ICmpOp>(loc, mlir::LLVM::ICmpPredicate::eq, lhs, rhs);
+        returnValue =  builder->create<mlir::LLVM::ZExtOp>(loc, intType, returnValue);
+    } else if (op == "!=") {
+        returnValue = builder->create<mlir::LLVM::ICmpOp>(loc, mlir::LLVM::ICmpPredicate::ne, lhs, rhs);
+        returnValue =  builder->create<mlir::LLVM::ZExtOp>(loc, intType, returnValue);
+    } else if (op == "<") {
+        returnValue = builder->create<mlir::LLVM::ICmpOp>(loc, mlir::LLVM::ICmpPredicate::slt, lhs, rhs);
+        returnValue =  builder->create<mlir::LLVM::ZExtOp>(loc, intType, returnValue);
+    } else if (op == ">") {
+        returnValue = builder->create<mlir::LLVM::ICmpOp>(loc, mlir::LLVM::ICmpPredicate::sgt, lhs, rhs);
+        returnValue =  builder->create<mlir::LLVM::ZExtOp>(loc, intType, returnValue);
+    } else {
+        std::cout << "Error: Operation not found\n";
+    }
+
+    return returnValue;
 }
 
 ExprResult BackEnd::generateGenExpr(std::shared_ptr<ScopedBinExprAST> node) {
