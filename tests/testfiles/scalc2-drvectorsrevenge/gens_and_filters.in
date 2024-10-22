@@ -3,7 +3,7 @@ int j = 25 * 6;
 print(i..j);
 print(j..i);
 
-vector k = [i in [i in 100..j | i * i] & i < 10001];
+vector k = [i in [i in j..100000000 | i + 1] & i < 152];
 print(k);
 
 vector l = [j in [i in i..(0-10) & i > j] | j];

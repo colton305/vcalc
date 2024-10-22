@@ -2,9 +2,8 @@ int i = 1;
 loop (i < 10)
     print([i in i..10 | i]);
     i = i + 1;
-    vector i = [i in i..10 | i];
+    vector i = [i in i..10000000 | i];
     int j = i[0];
-    print(i);
     print(j);
 pool;
 
