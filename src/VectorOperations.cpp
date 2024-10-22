@@ -37,7 +37,8 @@ ExprResult BackEnd::generateVecOpExpr(std::shared_ptr<BinExprAST> node) {
     result.size = builder->create<mlir::LLVM::SelectOp>(loc, comp, lhs.size, rhs.size);
     
     // Allocate memory for the result
-    result.value = builder->create<mlir::LLVM::AllocaOp>(loc, ptrType, intType, result.size);
+    mlir::Value arraySize = builder->create<mlir::LLVM::MulOp>(loc, builder->create<mlir::LLVM::SExtOp>(loc, arraySizeType, result.size), intSize);
+    result.value = builder->create<mlir::LLVM::CallOp>(loc, mallocFn, mlir::ValueRange{arraySize}).getResult();
 
     // Create basic blocks for vector processing
     mlir::Block* header = mainFunc.addBlock();
@@ -125,7 +126,8 @@ ExprResult BackEnd::generateGenExpr(std::shared_ptr<ScopedBinExprAST> node) {
     // Generate conditional blocks for the iteration
     mlir::Value comp = builder->create<mlir::LLVM::ICmpOp>(loc, mlir::LLVM::ICmpPredicate::sgt, result.size, one);
     mlir::Value arraySize = builder->create<mlir::LLVM::SelectOp>(loc, comp, result.size, one);
-    result.value = builder->create<mlir::LLVM::AllocaOp>(loc, ptrType, intType, arraySize);
+    arraySize = builder->create<mlir::LLVM::MulOp>(loc, builder->create<mlir::LLVM::SExtOp>(loc, arraySizeType, arraySize), intSize);
+    result.value = builder->create<mlir::LLVM::CallOp>(loc, mallocFn, mlir::ValueRange{arraySize}).getResult();
 
     mlir::Block* header = mainFunc.addBlock();
     mlir::Block* body = mainFunc.addBlock();
@@ -177,7 +179,8 @@ ExprResult BackEnd::generateFilterExpr(std::shared_ptr<ScopedBinExprAST> node) {
     // Allocate space for the iterator and result vector
     node->iterator->value.value = builder->create<mlir::LLVM::AllocaOp>(loc, ptrType, intType, one);
     ExprResult result;
-    result.value = builder->create<mlir::LLVM::AllocaOp>(loc, ptrType, intType, vector.size);
+    mlir::Value arraySize = builder->create<mlir::LLVM::MulOp>(loc, builder->create<mlir::LLVM::SExtOp>(loc, arraySizeType, vector.size), intSize);
+    result.value = builder->create<mlir::LLVM::CallOp>(loc, mallocFn, mlir::ValueRange{arraySize}).getResult();
 
     // Create basic blocks for loop structure
     mlir::Block* header = mainFunc.addBlock();
@@ -187,7 +190,7 @@ ExprResult BackEnd::generateFilterExpr(std::shared_ptr<ScopedBinExprAST> node) {
 
     // Initialize loop variables (index and array size)
     mlir::Value index = builder->create<mlir::LLVM::AllocaOp>(loc, ptrType, intType, one);
-    mlir::Value arraySize = builder->create<mlir::LLVM::AllocaOp>(loc, ptrType, intType, one);
+    arraySize = builder->create<mlir::LLVM::AllocaOp>(loc, ptrType, intType, one);
     builder->create<mlir::LLVM::StoreOp>(loc, zero, index);
     builder->create<mlir::LLVM::StoreOp>(loc, zero, arraySize);
 
@@ -248,7 +251,8 @@ ExprResult BackEnd::generateVecIndexExpr(std::shared_ptr<BinExprAST> node) {
 
     // Allocate space for the result and index vector size
     ExprResult result;
-    result.value = builder->create<mlir::LLVM::AllocaOp>(loc, ptrType, intType, indexVector.size);
+    mlir::Value arraySize = builder->create<mlir::LLVM::MulOp>(loc, builder->create<mlir::LLVM::SExtOp>(loc, arraySizeType, indexVector.size), intSize);
+    result.value = builder->create<mlir::LLVM::CallOp>(loc, mallocFn, mlir::ValueRange{arraySize}).getResult();
     result.size = indexVector.size;
 
     // Create basic blocks for loop structure

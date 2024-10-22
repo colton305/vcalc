@@ -105,7 +105,8 @@ ExprResult BackEnd::generateVecIntOpExpr(std::shared_ptr<BinExprAST> node) {
     mlir::Block* body = mainFunc.addBlock();
     mlir::Block* merge = mainFunc.addBlock();
 
-    result.value = builder->create<mlir::LLVM::AllocaOp>(loc, ptrType, intType, result.size);
+    mlir::Value arraySize = builder->create<mlir::LLVM::MulOp>(loc, builder->create<mlir::LLVM::SExtOp>(loc, arraySizeType, result.size), intSize);
+    result.value = builder->create<mlir::LLVM::CallOp>(loc, mallocFn, mlir::ValueRange{arraySize}).getResult();
     mlir::Value index = builder->create<mlir::LLVM::AllocaOp>(loc, ptrType, intType, one);
     builder->create<mlir::LLVM::StoreOp>(loc, zero, index);
 
@@ -258,6 +259,7 @@ ExprResult BackEnd::generateRangeExpr(mlir::Value lowerBound, mlir::Value upperB
     // Ensure that the array size is at least 1
     comp = builder->create<mlir::LLVM::ICmpOp>(loc, mlir::LLVM::ICmpPredicate::sgt, result.size, one);
     mlir::Value arraySize = builder->create<mlir::LLVM::SelectOp>(loc, comp, result.size, one);
+    arraySize = builder->create<mlir::LLVM::MulOp>(loc, builder->create<mlir::LLVM::SExtOp>(loc, arraySizeType, arraySize), intSize);
 
     // Create new basic blocks for the loop header, body, and merge
     mlir::Block* header = mainFunc.addBlock();
@@ -265,7 +267,7 @@ ExprResult BackEnd::generateRangeExpr(mlir::Value lowerBound, mlir::Value upperB
     mlir::Block* merge = mainFunc.addBlock();
 
     // Allocate memory for the result array
-    result.value = builder->create<mlir::LLVM::AllocaOp>(loc, ptrType, intType, arraySize);
+    result.value = builder->create<mlir::LLVM::CallOp>(loc, mallocFn, mlir::ValueRange{arraySize}).getResult();
 
     // Allocate memory for the index counter, initialized to the lower bound
     mlir::Value index = builder->create<mlir::LLVM::AllocaOp>(loc, ptrType, intType, one);

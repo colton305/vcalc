@@ -84,12 +84,15 @@ class BackEnd {
     llvm::LLVMContext llvm_context;
     std::unique_ptr<llvm::Module> llvm_module;
     mlir::LLVM::LLVMFuncOp mainFunc;
+    mlir::LLVM::LLVMFuncOp mallocFn;
 
     // Types
     mlir::Type intType;
+    mlir::Type arraySizeType;
     mlir::Type ptrType;
 
     // Constants
     mlir::Value zero;
     mlir::Value one;
+    mlir::Value intSize;
 };

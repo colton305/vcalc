@@ -1,4 +1,5 @@
 #include <assert.h>
+#include "mlir/Dialect/LLVMIR/FunctionCallUtils.h"
 
 #include "BackEnd.h"
 
@@ -28,13 +29,16 @@ int BackEnd::emitModule(std::shared_ptr<BlockStatAST> root) {
 
     // Create a main function 
     intType = mlir::IntegerType::get(&context, 32);
+    arraySizeType = mlir::IntegerType::get(&context, 64);
     ptrType = mlir::LLVM::LLVMPointerType::get(&context);
     auto mainType = mlir::LLVM::LLVMFunctionType::get(intType, {}, false);
     mainFunc = builder->create<mlir::LLVM::LLVMFuncOp>(loc, "main", mainType);
+    mallocFn = mlir::LLVM::lookupOrCreateMallocFn(module, arraySizeType);
     mlir::Block *entry = mainFunc.addEntryBlock();
     builder->setInsertionPointToStart(entry);
     zero = builder->create<mlir::LLVM::ConstantOp>(loc, intType, 0);
     one = builder->create<mlir::LLVM::ConstantOp>(loc, intType, 1);
+    intSize = builder->create<mlir::LLVM::ConstantOp>(loc, mlir::IntegerType::get(&context, 64), 4);
     
     for (auto stat : root->stats) {
         generateStat(stat);
